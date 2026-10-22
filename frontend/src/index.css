@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  h1, h2, h3, h4, .font-heading {
+    font-family: 'Outfit', 'Inter', sans-serif;
+  }
+}
+
+/* Custom animations for Alexa+ Aura & Assistant Experience */
+@keyframes alexaPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), 0 0 40px rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 35px rgba(139, 92, 246, 0.6), 0 0 60px rgba(59, 130, 246, 0.4);
+  }
+}
+
+@keyframes voiceWave {
+  0%, 100% {
+    height: 6px;
+  }
+  50% {
+    height: 24px;
+  }
+}
+
+.animate-alexa-pulse {
+  animation: alexaPulse 3s infinite ease-in-out;
+}
+
+.animate-voice-wave {
+  animation: voiceWave 1.2s infinite ease-in-out;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
