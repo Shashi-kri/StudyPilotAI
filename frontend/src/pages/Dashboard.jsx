@@ -11,7 +11,8 @@ import {
   AlertCircle,
   BookOpen,
   Award,
-  ChevronRight
+  ChevronRight,
+  Flame
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -98,6 +99,7 @@ export default function Dashboard({ onNavigate, onOpenAssistant }) {
     completed_tasks,
     pending_tasks,
     completion_percentage,
+    streak_days = 0,
     today_schedule = [],
     upcoming_sessions = [],
     weekly_progress = []
@@ -116,9 +118,17 @@ export default function Dashboard({ onNavigate, onOpenAssistant }) {
 
           <div className="relative z-10 flex flex-col justify-between h-full space-y-6">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-medium text-indigo-200 mb-3 border border-white/10">
-                <Calendar className="w-3.5 h-3.5 text-indigo-300" />
-                <span>{today_date}</span>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-medium text-indigo-200 border border-white/10">
+                  <Calendar className="w-3.5 h-3.5 text-indigo-300" />
+                  <span>{today_date}</span>
+                </div>
+                {streak_days > 0 && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 backdrop-blur-md text-xs font-semibold text-amber-300 border border-amber-500/30 shadow-xs">
+                    <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    <span>{streak_days}-Day Study Streak 🔥</span>
+                  </div>
+                )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight font-heading leading-tight">
                 {welcome_message}

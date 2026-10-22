@@ -13,7 +13,8 @@ import {
   Save, 
   Sliders,
   Check,
-  ChevronDown
+  ChevronDown,
+  Download
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -262,6 +263,43 @@ export default function StudyPlanner({ onNavigate }) {
     }
   };
 
+  const handleExportCalendar = () => {
+    if (!generatedPlan) return;
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//StudyPilot AI//Study Planner//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      `X-WR-CALNAME:${generatedPlan.plan_title || 'Study Schedule'}`
+    ];
+
+    generatedPlan.tasks.forEach((t, idx) => {
+      const cleanDate = (t.date || '').replace(/-/g, '');
+      const cleanTime = (t.start_time || '10:00').replace(/:/g, '');
+      const dtStart = `${cleanDate}T${cleanTime}00`;
+      lines.push("BEGIN:VEVENT");
+      lines.push(`UID:studypilot-plan-${idx}-${Date.now()}@studypilot.ai`);
+      lines.push(`DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`);
+      lines.push(`DTSTART:${dtStart}`);
+      lines.push(`SUMMARY:${t.title}`);
+      lines.push(`DESCRIPTION:Subject: ${t.subject}\\nTopic: ${t.topic}\\n${t.description || ''}`);
+      lines.push("STATUS:CONFIRMED");
+      lines.push("END:VEVENT");
+    });
+
+    lines.push("END:VCALENDAR");
+    const blob = new Blob([lines.join("\r\n")], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(generatedPlan.plan_title || 'study_plan').toLowerCase().replace(/\s+/g, '_')}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   // If plan has been generated and ready for review:
   if (generatedPlan) {
     return (
@@ -298,6 +336,14 @@ export default function StudyPlanner({ onNavigate }) {
               >
                 <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
                 <span>Regenerate</span>
+              </button>
+              <button
+                onClick={handleExportCalendar}
+                className="px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors flex items-center gap-2"
+                title="Download .ics file for Google Calendar, Apple Calendar, or Outlook"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export .ics</span>
               </button>
               <button
                 onClick={handleSavePlan}

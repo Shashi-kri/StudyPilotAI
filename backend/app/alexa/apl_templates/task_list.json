@@ -1,0 +1,43 @@
+{
+  "type": "APL",
+  "version": "1.8",
+  "theme": "dark",
+  "import": [
+    {
+      "name": "alexa-layouts",
+      "version": "1.5.0"
+    }
+  ],
+  "mainTemplate": {
+    "parameters": [
+      "payload"
+    ],
+    "items": [
+      {
+        "type": "Container",
+        "width": "100vw",
+        "height": "100vh",
+        "paddingLeft": "@marginHorizontal",
+        "paddingRight": "@marginHorizontal",
+        "paddingTop": "@marginVertical",
+        "paddingBottom": "@marginVertical",
+        "items": [
+          {
+            "type": "AlexaHeader",
+            "headerTitle": "StudyPilot AI",
+            "headerSubtitle": "${payload.taskListData.title}",
+            "headerAttributionImage": "https://raw.githubusercontent.com/Shashi-kri/StudyPilotAI/main/frontend/public/vite.svg"
+          },
+          {
+            "type": "AlexaTextList",
+            "headerTitle": "${payload.taskListData.header}",
+            "listItems": "${payload.taskListData.items}",
+            "primaryText": "${data.title}",
+            "secondaryText": "${data.subject} • ${data.duration} mins",
+            "tertiaryText": "${data.priority}"
+          }
+        ]
+      }
+    ]
+  }
+}

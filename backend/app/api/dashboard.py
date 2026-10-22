@@ -98,6 +98,9 @@ def get_dashboard_data(db: Session = Depends(get_db)):
     if settings.AI_PROVIDER != "mock" and (settings.GEMINI_API_KEY or settings.OPENAI_API_KEY):
         ai_mode = "llm"
 
+    from app.services.assistant_service import _compute_streak
+    streak = _compute_streak(db, today)
+
     return DashboardStatsResponse(
         welcome_message=welcome_msg,
         today_date=today.strftime("%A, %B %d, %Y"),
@@ -108,6 +111,7 @@ def get_dashboard_data(db: Session = Depends(get_db)):
         completed_tasks=completed_tasks,
         pending_tasks=pending_tasks,
         completion_percentage=completion_percentage,
+        streak_days=streak,
         today_schedule=[TaskResponse.model_validate(t) for t in today_tasks],
         upcoming_sessions=[TaskResponse.model_validate(t) for t in upcoming_tasks],
         weekly_progress=weekly_metrics,

@@ -6,11 +6,14 @@ import TaskManager from './pages/TaskManager';
 import WeeklyPlan from './pages/WeeklyPlan';
 import Settings from './pages/Settings';
 import AlexaAssistant from './components/AlexaAssistant';
+import PomodoroTimer from './components/PomodoroTimer';
 import { api } from './services/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isTimerOpen, setIsTimerOpen] = useState(false);
+  const [timerTasks, setTimerTasks] = useState([]);
   const [aiMode, setAiMode] = useState('mock');
 
   // Load system mode on initial mount
@@ -33,6 +36,24 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleOpenTimer = () => {
+    api.getTasks('all')
+      .then((tasks) => setTimerTasks(tasks || []))
+      .catch(() => setTimerTasks([]));
+    setIsTimerOpen(true);
+  };
+
+  const handleToggleTimerTask = async (taskId) => {
+    try {
+      await api.toggleTask(taskId);
+      setTimerTasks((prev) =>
+        prev.map((t) => (t.id === Number(taskId) ? { ...t, is_completed: true } : t))
+      );
+    } catch (err) {
+      console.error('Failed to toggle task:', err);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
       
@@ -41,6 +62,7 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={handleNavigate}
         onOpenAssistant={() => setIsAssistantOpen(true)}
+        onOpenTimer={handleOpenTimer}
         aiMode={aiMode}
       />
 
@@ -77,6 +99,14 @@ export default function App() {
         isOpen={isAssistantOpen}
         onClose={() => setIsAssistantOpen(false)}
         onNavigate={handleNavigate}
+      />
+
+      {/* Pomodoro Focus Timer Modal */}
+      <PomodoroTimer
+        isOpen={isTimerOpen}
+        onClose={() => setIsTimerOpen(false)}
+        tasks={timerTasks}
+        onCompleteTask={handleToggleTimerTask}
       />
 
       {/* Application Footer */}

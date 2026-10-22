@@ -55,3 +55,59 @@ def get_plan(plan_id: int, db: Session = Depends(get_db)):
         "created_at": plan.created_at,
         "tasks": [TaskResponse.model_validate(t) for t in plan.tasks]
     }
+
+@router.get("/{plan_id}/export/ical")
+def export_plan_ical(plan_id: int, db: Session = Depends(get_db)):
+    from fastapi.responses import Response
+    from datetime import datetime, timedelta, timezone
+
+    plan = plan_service.get_study_plan_by_id(db, plan_id)
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Study plan {plan_id} not found."
+        )
+
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//StudyPilot AI//Study Planner//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        f"X-WR-CALNAME:{plan.title or 'Study Schedule'}",
+    ]
+
+    for task in plan.tasks:
+        try:
+            date_clean = task.date.replace("-", "")
+            start_time_clean = (task.start_time or "10:00").replace(":", "")
+            dt_start_str = f"{date_clean}T{start_time_clean}00"
+            start_dt = datetime.strptime(f"{task.date} {task.start_time or '10:00'}", "%Y-%m-%d %H:%M")
+            end_dt = start_dt + timedelta(minutes=task.duration or 60)
+            dt_end_str = end_dt.strftime("%Y%m%dT%H%M00")
+        except Exception:
+            dt_start_str = f"{task.date.replace('-', '')}T100000"
+            dt_end_str = f"{task.date.replace('-', '')}T110000"
+
+        lines.extend([
+            "BEGIN:VEVENT",
+            f"UID:studypilot-task-{task.id}@studypilot.ai",
+            f"DTSTAMP:{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
+            f"DTSTART:{dt_start_str}",
+            f"DTEND:{dt_end_str}",
+            f"SUMMARY:{task.title}",
+            f"DESCRIPTION:Subject: {task.subject}\\nTopic: {task.topic}\\n{task.description or ''}",
+            "STATUS:CONFIRMED",
+            "END:VEVENT",
+        ])
+
+    lines.append("END:VCALENDAR")
+    ical_content = "\r\n".join(lines) + "\r\n"
+
+    filename = f"studypilot_plan_{plan_id}.ics"
+    return Response(
+        content=ical_content,
+        media_type="text/calendar",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+

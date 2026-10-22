@@ -19,6 +19,7 @@ class DashboardStatsResponse(BaseModel):
     completed_tasks: int
     pending_tasks: int
     completion_percentage: float
+    streak_days: int = 0
     today_schedule: List[TaskResponse]
     upcoming_sessions: List[TaskResponse]
     weekly_progress: List[DailyProgressMetric]

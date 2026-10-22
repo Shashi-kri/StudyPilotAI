@@ -1,41 +1,8 @@
 import pytest
 from datetime import date, timedelta
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from app.main import app
-from app.database import Base, get_db
 
-# In-memory SQLite with StaticPool so all connections share the same memory DB
-SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
-
-engine = create_engine(
-    SQLALCHEMY_TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-app.dependency_overrides[get_db] = override_get_db
-
-@pytest.fixture(autouse=True)
-def setup_database():
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
-
-client = TestClient(app)
-
-def test_health_endpoint():
+def test_health_endpoint(client):
     response = client.get("/api/health")
     assert response.status_code == 200
     data = response.json()
@@ -43,7 +10,7 @@ def test_health_endpoint():
     assert data["database"] == "healthy"
     assert "mock_mode" in data
 
-def test_task_crud_lifecycle():
+def test_task_crud_lifecycle(client):
     today = date.today().strftime("%Y-%m-%d")
     
     # 1. Create task
@@ -94,7 +61,7 @@ def test_task_crud_lifecycle():
     get_after_del = client.get(f"/api/tasks/{task_id}")
     assert get_after_del.status_code == 404
 
-def test_study_plan_generation_and_saving():
+def test_study_plan_generation_and_saving(client):
     today = date.today()
     exam_date = (today + timedelta(days=10)).strftime("%Y-%m-%d")
 
@@ -151,7 +118,7 @@ def test_study_plan_generation_and_saving():
     assert dash_data["total_tasks"] == len(tasks)
     assert dash_data["exam_countdown_days"] is not None
 
-def test_conversational_assistant():
+def test_conversational_assistant(client):
     # Chat query for pending tasks
     chat_res = client.post("/api/assistant/chat", json={"message": "Show me my pending tasks"})
     assert chat_res.status_code == 200
@@ -165,3 +132,43 @@ def test_conversational_assistant():
     plan_data = chat_plan.json()
     assert plan_data["card_type"] == "plan_preview"
     assert "tasks" in plan_data["card_data"]
+
+def test_study_plan_ical_export(client):
+    today = date.today()
+    exam_date = (today + timedelta(days=7)).strftime("%Y-%m-%d")
+
+    # Generate and save plan first
+    plan_req = {
+        "student_name": "Sam",
+        "subjects": [{"name": "Algorithms", "difficulty": "medium", "topics": ["Sorting", "Greedy"]}],
+        "exam_date": exam_date,
+        "daily_hours": 2.0,
+        "preferred_days": ["Mon", "Tue", "Wed"],
+        "topic_priority": {},
+        "break_preferences": "",
+        "is_revision_prioritized": True
+    }
+    gen_res = client.post("/api/plans/generate", json=plan_req)
+    plan_out = gen_res.json()
+
+    save_req = {
+        "title": "Sam's Plan",
+        "student_name": "Sam",
+        "exam_date": exam_date,
+        "daily_hours": 2.0,
+        "preferred_days": ["Mon", "Tue", "Wed"],
+        "subject_difficulty": {},
+        "topic_priority": {},
+        "tasks": plan_out["tasks"]
+    }
+    save_res = client.post("/api/plans", json=save_req)
+    plan_id = save_res.json()["id"]
+
+    # Export iCal
+    export_res = client.get(f"/api/plans/{plan_id}/export/ical")
+    assert export_res.status_code == 200
+    assert "BEGIN:VCALENDAR" in export_res.text
+    assert "BEGIN:VEVENT" in export_res.text
+    assert "END:VCALENDAR" in export_res.text
+    assert export_res.headers["content-type"].startswith("text/calendar")
+

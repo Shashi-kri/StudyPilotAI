@@ -1,0 +1,179 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "study pilot",
+      "modelConfiguration": {
+        "fallbackIntentSensitivity": {
+          "level": "LOW"
+        }
+      },
+      "intents": [
+        {
+          "name": "ShowPendingTasksIntent",
+          "slots": [],
+          "samples": [
+            "show me my pending tasks",
+            "what tasks do I have",
+            "what do I have due",
+            "what's on my study list",
+            "show my tasks",
+            "list my pending tasks",
+            "what tasks are incomplete",
+            "what have I not done yet",
+            "my study tasks",
+            "what's due today"
+          ]
+        },
+        {
+          "name": "CreateStudyPlanIntent",
+          "slots": [
+            {
+              "name": "subject",
+              "type": "STUDY_SUBJECT"
+            },
+            {
+              "name": "days",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "create a study plan",
+            "create a {days} day {subject} plan",
+            "make a {days} day plan for {subject}",
+            "generate a revision plan for {subject}",
+            "I have a {subject} exam in {days} days",
+            "prepare me for {subject} in {days} days",
+            "build a {days} day revision schedule for {subject}",
+            "create a study schedule for {subject}",
+            "study plan for {subject}",
+            "I need to study {subject}",
+            "help me prepare for {subject}"
+          ]
+        },
+        {
+          "name": "AddStudySessionIntent",
+          "slots": [
+            {
+              "name": "subject",
+              "type": "STUDY_SUBJECT"
+            },
+            {
+              "name": "duration",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "when",
+              "type": "AMAZON.DATE"
+            }
+          ],
+          "samples": [
+            "add a study session",
+            "schedule a {duration} minute {subject} session",
+            "add a {duration} hour {subject} session",
+            "add a {duration} minute {subject} session {when}",
+            "book a {subject} study block",
+            "schedule {subject} revision",
+            "add {subject} to my schedule",
+            "create a {subject} session for {when}"
+          ]
+        },
+        {
+          "name": "GetProgressIntent",
+          "slots": [],
+          "samples": [
+            "how am I doing",
+            "show my progress",
+            "what's my study progress",
+            "how many tasks have I completed",
+            "what's my completion rate",
+            "show me my stats",
+            "how's my studying going",
+            "what's my study streak",
+            "my performance",
+            "study statistics"
+          ]
+        },
+        {
+          "name": "RecommendTopicsIntent",
+          "slots": [],
+          "samples": [
+            "what should I study next",
+            "recommend topics",
+            "what topic should I focus on",
+            "what should I revise",
+            "give me a recommendation",
+            "what's my highest priority topic",
+            "what do I need to study most",
+            "which subject should I start with"
+          ]
+        },
+        {
+          "name": "CheckExamCountdownIntent",
+          "slots": [],
+          "samples": [
+            "how many days until my exam",
+            "exam countdown",
+            "when is my exam",
+            "how long until my exam",
+            "days remaining until exam",
+            "time left until exam",
+            "how much time do I have to study"
+          ]
+        },
+        {
+          "name": "MarkTaskCompleteIntent",
+          "slots": [
+            {
+              "name": "taskTitle",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "mark {taskTitle} as done",
+            "mark {taskTitle} complete",
+            "I finished {taskTitle}",
+            "I'm done with {taskTitle}",
+            "complete {taskTitle}",
+            "tick off {taskTitle}"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "slots": [],
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "slots": [],
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "slots": [],
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "slots": [],
+          "samples": []
+        }
+      ],
+      "types": [
+        {
+          "name": "STUDY_SUBJECT",
+          "values": [
+            { "name": { "value": "DSA", "synonyms": ["data structures", "algorithms", "data structures and algorithms"] } },
+            { "name": { "value": "Computer Networks", "synonyms": ["networking", "networks", "computer networking"] } },
+            { "name": { "value": "Operating Systems", "synonyms": ["OS", "operating system"] } },
+            { "name": { "value": "Database Systems", "synonyms": ["DBMS", "databases", "SQL", "database management"] } },
+            { "name": { "value": "Mathematics", "synonyms": ["math", "maths", "calculus", "linear algebra"] } },
+            { "name": { "value": "Physics", "synonyms": ["physics"] } },
+            { "name": { "value": "Chemistry", "synonyms": ["chemistry", "organic chemistry"] } },
+            { "name": { "value": "Software Engineering", "synonyms": ["SE", "software design", "software development"] } },
+            { "name": { "value": "Machine Learning", "synonyms": ["ML", "artificial intelligence", "AI", "deep learning"] } }
+          ]
+        }
+      ]
+    }
+  }
+}

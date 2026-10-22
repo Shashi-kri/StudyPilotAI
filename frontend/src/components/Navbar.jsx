@@ -8,10 +8,11 @@ import {
   Bot, 
   Menu, 
   X,
-  Compass
+  Compass,
+  Timer
 } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, onOpenAssistant, aiMode = "mock" }) {
+export default function Navbar({ activeTab, setActiveTab, onOpenAssistant, onOpenTimer, aiMode = "mock" }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
@@ -76,6 +77,16 @@ export default function Navbar({ activeTab, setActiveTab, onOpenAssistant, aiMod
               <span className={`w-2 h-2 rounded-full ${aiMode === 'llm' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
               <span className="capitalize">{aiMode} Mode</span>
             </div>
+
+            {/* Pomodoro Focus Timer Button */}
+            <button
+              onClick={onOpenTimer}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition active:scale-95"
+              title="Study Focus Timer (Pomodoro)"
+            >
+              <Timer className="w-4 h-4 text-indigo-600" />
+              <span className="hidden sm:inline">Focus Timer</span>
+            </button>
 
             {/* Alexa+ Assistant Launcher Button */}
             <button

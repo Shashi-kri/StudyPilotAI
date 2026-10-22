@@ -1,0 +1,37 @@
+{
+  "type": "APL",
+  "version": "1.8",
+  "theme": "dark",
+  "import": [
+    {
+      "name": "alexa-layouts",
+      "version": "1.5.0"
+    }
+  ],
+  "mainTemplate": {
+    "parameters": [
+      "payload"
+    ],
+    "items": [
+      {
+        "type": "Container",
+        "width": "100vw",
+        "height": "100vh",
+        "paddingLeft": "@marginHorizontal",
+        "paddingRight": "@marginHorizontal",
+        "items": [
+          {
+            "type": "AlexaHeader",
+            "headerTitle": "StudyPlan Generated ✨",
+            "headerSubtitle": "${payload.planData.planTitle}"
+          },
+          {
+            "type": "AlexaHeadline",
+            "primaryText": "${payload.planData.totalDays} Study Days • ${payload.planData.totalHours} Hours Total",
+            "secondaryText": "${payload.planData.summaryText}"
+          }
+        ]
+      }
+    ]
+  }
+}

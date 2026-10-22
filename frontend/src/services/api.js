@@ -72,6 +72,7 @@ export const api = {
   }),
   getPlans: () => request('/plans'),
   getPlan: (id) => request(`/plans/${id}`),
+  getPlanIcalUrl: (id) => `/api/plans/${id}/export/ical`,
 
   // Conversational Assistant
   sendAssistantChat: (message, conversationHistory = []) => request('/assistant/chat', {
