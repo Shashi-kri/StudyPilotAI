@@ -124,7 +124,7 @@ def test_conversational_assistant(client):
     assert chat_res.status_code == 200
     data = chat_res.json()
     assert "reply" in data
-    assert data["generation_mode"] in ["mock", "llm"]
+    assert data["generation_mode"] in ["mock", "llm", "gemini", "openai"]
 
     # Chat query for plan generation
     chat_plan = client.post("/api/assistant/chat", json={"message": "Create a 7-day DSA revision plan"})

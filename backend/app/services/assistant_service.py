@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -58,17 +59,21 @@ User message: "{text}"
 
 Reply with ONLY the intent name, nothing else."""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={settings.GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.AI_MODEL_NAME}:generateContent?key={settings.GEMINI_API_KEY}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.0, "maxOutputTokens": 20}
+        "generationConfig": {"temperature": 0.0, "maxOutputTokens": 300}
     }
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(url, json=payload)
             resp.raise_for_status()
             data = resp.json()
-            intent_raw = data["candidates"][0]["content"]["parts"][0]["text"].strip().lower()
+            parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+            text_parts = [p.get("text", "") for p in parts if "text" in p]
+            if not text_parts:
+                return classify_intent(text)
+            intent_raw = text_parts[-1].strip().lower()
             # Clean up in case model adds punctuation
             intent_clean = re.sub(r"[^a-z_]", "", intent_raw)
             if intent_clean in INTENT_KEYWORDS or intent_clean == "fallback":
@@ -103,16 +108,25 @@ Assistant:"""
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.AI_MODEL_NAME}:generateContent?key={settings.GEMINI_API_KEY}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 200}
+        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 600}
     }
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(url, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
-    except Exception as e:
-        logger.warning(f"Gemini conversational reply failed: {e}")
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                resp = await client.post(url, json=payload)
+                if resp.status_code == 503 and attempt == 0:
+                    logger.info("Gemini conversational reply 503 spike. Retrying in 1.5s...")
+                    await asyncio.sleep(1.5)
+                    continue
+                resp.raise_for_status()
+                data = resp.json()
+                parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                text_parts = [p.get("text", "") for p in parts if "text" in p]
+                if text_parts:
+                    return "".join(text_parts).strip()
+        except Exception as e:
+            if attempt == 1 or not isinstance(e, httpx.HTTPStatusError) or e.response.status_code != 503:
+                logger.warning(f"Gemini conversational reply failed: {e}")
     return None
 
 

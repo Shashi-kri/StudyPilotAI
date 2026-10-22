@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from datetime import datetime, date, timedelta
@@ -23,7 +24,7 @@ def get_available_dates(start_date: date, end_date: date, preferred_days: List[s
         curr += timedelta(days=1)
     return dates
 
-def generate_deterministic_plan(req: PlanGenerateRequest) -> PlanGenerateResponse:
+def generate_deterministic_plan(req: PlanGenerateRequest, fallback_reason: Optional[str] = None) -> PlanGenerateResponse:
     today = date.today()
     try:
         exam_d = datetime.strptime(req.exam_date, "%Y-%m-%d").date()
@@ -187,7 +188,7 @@ def generate_deterministic_plan(req: PlanGenerateRequest) -> PlanGenerateRespons
         total_hours_planned=total_hours_planned,
         total_tasks_count=len(planned_tasks),
         is_workload_feasible=is_feasible,
-        feasibility_notes=feasibility_notes,
+        feasibility_notes=f"[Engine Notice: {fallback_reason}] " + (feasibility_notes or "") if fallback_reason else feasibility_notes,
         tasks=planned_tasks,
         generation_mode="mock"
     )
@@ -195,17 +196,24 @@ def generate_deterministic_plan(req: PlanGenerateRequest) -> PlanGenerateRespons
 async def generate_study_plan_service(req: PlanGenerateRequest) -> PlanGenerateResponse:
     """Entry point for study plan generation. Uses LLM if configured; otherwise uses deterministic generator."""
     if settings.AI_PROVIDER == "gemini" and settings.GEMINI_API_KEY:
+        logger.info(f"Initiating study plan generation with Gemini (model={settings.AI_MODEL_NAME})")
         try:
             return await _generate_with_gemini(req)
         except Exception as e:
-            logger.warning(f"Gemini LLM generation failed: {e}. Falling back to deterministic mock generator.")
+            fallback_msg = f"Gemini generation error ({type(e).__name__}). Operating in deterministic fallback mode."
+            logger.warning(f"{fallback_msg} Details: {e}")
+            return generate_deterministic_plan(req, fallback_reason=fallback_msg)
     elif settings.AI_PROVIDER == "openai" and settings.OPENAI_API_KEY:
+        logger.info("Initiating study plan generation with OpenAI")
         try:
             return await _generate_with_openai(req)
         except Exception as e:
-            logger.warning(f"OpenAI generation failed: {e}. Falling back to deterministic mock generator.")
+            fallback_msg = f"OpenAI generation error ({type(e).__name__}). Operating in deterministic fallback mode."
+            logger.warning(f"{fallback_msg} Details: {e}")
+            return generate_deterministic_plan(req, fallback_reason=fallback_msg)
 
     # Deterministic mock mode
+    logger.info("Generating plan using deterministic mock engine (AI_PROVIDER=mock or API keys unset)")
     return generate_deterministic_plan(req)
 
 async def _generate_with_gemini(req: PlanGenerateRequest) -> PlanGenerateResponse:
@@ -252,12 +260,18 @@ Rules:
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.2, "response_mime_type": "application/json"}
     }
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(url, json=payload)
-        resp.raise_for_status()
-        data = resp.json()
-        raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-        parsed = json.loads(raw_text)
+    for attempt in range(2):
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(url, json=payload)
+            if resp.status_code == 503 and attempt == 0:
+                logger.info("Gemini 503 high-demand spike. Retrying in 1.5s...")
+                await asyncio.sleep(1.5)
+                continue
+            resp.raise_for_status()
+            data = resp.json()
+            parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+            raw_text = "".join(p.get("text", "") for p in parts if "text" in p)
+            parsed = json.loads(raw_text)
         
         tasks = [PlannedTaskItem(**t) for t in parsed["tasks"]]
         return PlanGenerateResponse(

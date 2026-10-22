@@ -22,5 +22,6 @@ def health_check(db: Session = Depends(get_db)):
         "service": settings.PROJECT_NAME,
         "environment": settings.ENVIRONMENT,
         "ai_provider": settings.AI_PROVIDER,
+        "ai_model_name": settings.AI_MODEL_NAME,
         "mock_mode": settings.AI_PROVIDER == "mock" or (not settings.GEMINI_API_KEY and not settings.OPENAI_API_KEY)
     }
