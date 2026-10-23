@@ -12,7 +12,8 @@ import {
   BookOpen,
   Award,
   ChevronRight,
-  Flame
+  Flame,
+  Bot
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -30,6 +31,7 @@ export default function Dashboard({ onNavigate, onOpenAssistant }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState(null);
 
   const fetchDashboard = async () => {
     try {
@@ -51,10 +53,11 @@ export default function Dashboard({ onNavigate, onOpenAssistant }) {
   const handleToggleTask = async (taskId) => {
     try {
       setActionLoading(true);
+      setActionError(null);
       await api.toggleTask(taskId);
       await fetchDashboard();
     } catch (err) {
-      alert(`Error updating task: ${err.message}`);
+      setActionError(`Could not update task: ${err.message}`);
     } finally {
       setActionLoading(false);
     }
@@ -107,20 +110,38 @@ export default function Dashboard({ onNavigate, onOpenAssistant }) {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
+      {/* Inline Action Error Banner */}
+      {actionError && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-sm">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+          <span>{actionError}</span>
+          <button
+            onClick={() => setActionError(null)}
+            className="ml-auto text-rose-400 hover:text-rose-600"
+            aria-label="Dismiss"
+          >×</button>
+        </div>
+      )}
       
       {/* Top Banner / Welcome & Exam Countdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Welcome & Primary CTA Card */}
-        <div className="lg:col-span-2 relative overflow-hidden bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 rounded-3xl p-8 text-white shadow-xl shadow-indigo-950/20">
-          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 right-1/4 -mb-10 w-48 h-48 bg-violet-500/20 rounded-full blur-2xl pointer-events-none" />
+        {/* StudyPilot AI Hero Section with Luminous Assistant Light Ring */}
+        <div className="lg:col-span-2 relative overflow-hidden bg-gradient-to-br from-[#060D1E] via-[#0B152B] to-[#0A192F] rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-slate-950/40 border border-cyan-500/20">
+          
+          {/* Subtle Ambient Radial Glows */}
+          <div className="absolute top-0 right-0 -mt-12 -mr-12 w-72 h-72 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/4 -mb-12 w-64 h-64 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col justify-between h-full space-y-6">
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-medium text-indigo-200 border border-white/10">
-                  <Calendar className="w-3.5 h-3.5 text-indigo-300" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            
+            {/* Left Content Area */}
+            <div className="space-y-4 max-w-xl text-left">
+              
+              {/* Badges */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/70 backdrop-blur-md text-xs font-medium text-cyan-300 border border-cyan-500/30">
+                  <Calendar className="w-3.5 h-3.5 text-cyan-400" />
                   <span>{today_date}</span>
                 </div>
                 {streak_days > 0 && (
@@ -129,32 +150,78 @@ export default function Dashboard({ onNavigate, onOpenAssistant }) {
                     <span>{streak_days}-Day Study Streak 🔥</span>
                   </div>
                 )}
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-950/60 backdrop-blur-md text-[11px] font-semibold text-sky-300 border border-sky-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <span>AI Engine Ready</span>
+                </div>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight font-heading leading-tight">
+
+              {/* Headline */}
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-heading leading-tight text-white">
                 {welcome_message}
               </h1>
-              <p className="text-indigo-200 text-sm sm:text-base mt-2 max-w-xl">
-                Ready to optimize your study time? Generate an intelligent, balanced exam prep plan tailored to your exam schedule and priorities.
+
+              {/* Supporting Text */}
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                Empower your exam preparation with algorithmic schedule optimization, syllabus difficulty balancing, and on-demand conversational study guidance.
               </p>
+
+              {/* Call-to-Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  onClick={() => onNavigate('planner')}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-bold text-sm shadow-lg shadow-cyan-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Sparkles className="w-4 h-4 text-slate-950" />
+                  <span>Create Study Plan</span>
+                </button>
+                
+                <button
+                  onClick={onOpenAssistant}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium text-sm backdrop-blur-md border border-white/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Bot className="w-4 h-4 text-cyan-300" />
+                  <span>Ask AI Assistant</span>
+                  <ArrowRight className="w-4 h-4 text-slate-400" />
+                </button>
+              </div>
+
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <button
-                onClick={() => onNavigate('planner')}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-indigo-900 font-semibold text-sm hover:bg-indigo-50 shadow-lg shadow-black/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <Sparkles className="w-4 h-4 text-indigo-600" />
-                <span>Create Study Plan</span>
-              </button>
-              
-              <button
+            {/* Right: Original Luminous Blue/Cyan Smart-Assistant Light Ring */}
+            <div className="shrink-0 flex flex-col items-center justify-center p-2">
+              <div 
                 onClick={onOpenAssistant}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-700/60 hover:bg-indigo-700 text-white font-medium text-sm backdrop-blur-md border border-white/15 transition-all"
+                className="group cursor-pointer relative flex items-center justify-center transition-transform hover:scale-105"
+                title="Click to interact with StudyPilot AI Assistant"
+                role="button"
+                tabIndex={0}
               >
-                <span>Ask Alexa+ Assistant</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+                {/* Outermost ambient glow aura */}
+                <div className="absolute inset-0 rounded-full bg-cyan-500/20 blur-xl animate-pulse" />
+
+                {/* Concentric light-ring housing */}
+                <div className="assistant-light-ring relative w-32 h-32 sm:w-36 sm:h-36 rounded-full flex items-center justify-center p-1 bg-gradient-to-tr from-cyan-900/40 via-sky-950/60 to-blue-900/40 border border-cyan-400/40 backdrop-blur-md">
+                  
+                  {/* Rotating luminous gradient ring */}
+                  <div className="light-ring-spinner absolute inset-0 rounded-full border-2 border-transparent border-t-cyan-300 border-r-sky-400 border-b-blue-500 opacity-90" />
+                  
+                  {/* Inner orb core */}
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#060D1E] border border-cyan-500/30 flex flex-col items-center justify-center text-center p-2 relative shadow-inner">
+                    <div className="relative">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-cyan-500/30 group-hover:scale-110 transition-transform">
+                        <Bot className="w-4 h-4" />
+                      </div>
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping opacity-75" />
+                    </div>
+                    <span className="text-[10px] font-bold text-cyan-200 mt-1.5 tracking-tight uppercase">StudyPilot AI</span>
+                    <span className="text-[9px] text-sky-400/80 font-medium">Assistant Active</span>
+                  </div>
+
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
 
@@ -434,16 +501,16 @@ export default function Dashboard({ onNavigate, onOpenAssistant }) {
 
           {/* Assistant Quick Suggestion Card */}
           <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl p-5 border border-indigo-100">
-            <div className="flex items-center gap-2 text-indigo-700 font-semibold text-sm font-heading">
-              <Sparkles className="w-4 h-4 text-indigo-600" />
-              <span>Alexa+ Study Tip</span>
+            <div className="flex items-center gap-2 text-orange-700 font-semibold text-sm font-heading">
+              <Sparkles className="w-4 h-4 text-orange-500" />
+              <span>Study Tip</span>
             </div>
             <p className="text-xs text-slate-600 mt-2 leading-relaxed">
               Spacing your revision sessions across multiple days yields significantly higher retention than cramming. Let StudyPilot balance your workload!
             </p>
             <button
               onClick={onOpenAssistant}
-              className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+              className="mt-3 text-xs font-semibold text-orange-600 hover:text-orange-800 flex items-center gap-1"
             >
               <span>Chat with Study Assistant</span>
               <ArrowRight className="w-3.5 h-3.5" />

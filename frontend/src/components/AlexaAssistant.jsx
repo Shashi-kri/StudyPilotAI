@@ -19,11 +19,13 @@ import {
 import { api } from '../services/api';
 
 const EXAMPLE_PROMPTS = [
-  "Create a 7-day DSA revision plan",
+  "What should I study today?",
+  "Which task should I prioritise?",
+  "Which is the easiest?",
+  "Why should I study this first?",
+  "I have only 30 minutes. What should I study?",
   "Show me my pending tasks",
-  "Which topics should I revise next?",
-  "Add a one-hour revision session for Operating Systems tomorrow",
-  "I have my Computer Networks exam in 10 days",
+  "Create a 7-day DSA study plan",
   "What's my study progress?"
 ];
 
@@ -60,7 +62,7 @@ export default function AlexaAssistant({ isOpen, onClose, onNavigate }) {
     {
       id: 'msg-0',
       sender: 'assistant',
-      text: "Hello! I'm your StudyPilot Alexa+ companion. How can I assist your exam preparation today? You can ask me to generate a revision plan, check your pending tasks, or schedule a study session.",
+      text: "Hello! I'm your StudyPilot AI study assistant. How can I help with your exam preparation today? You can ask me to generate a revision plan, check your pending tasks, or schedule a study session.",
       cardType: null,
       cardData: null,
       suggestedActions: [
@@ -317,7 +319,7 @@ export default function AlexaAssistant({ isOpen, onClose, onNavigate }) {
 
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold tracking-tight">Alexa+ Study Companion</h3>
+                <h3 className="text-base font-bold tracking-tight">StudyPilot AI Assistant</h3>
                 <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border ${
                   isListening
                     ? 'bg-red-500/20 text-red-300 border-red-400/30'
@@ -657,7 +659,7 @@ export default function AlexaAssistant({ isOpen, onClose, onNavigate }) {
             <input
               ref={inputRef}
               type="text"
-              placeholder={isListening ? 'Listening...' : "Ask Alexa+: 'Create a 7-day DSA plan' or 'Show pending tasks'..."}
+              placeholder={isListening ? 'Listening...' : "Ask AI: 'Create a 7-day DSA plan' or 'Show pending tasks'..."}
               value={interimTranscript || input}
               onChange={(e) => { if (!isListening) setInput(e.target.value); }}
               readOnly={isListening}

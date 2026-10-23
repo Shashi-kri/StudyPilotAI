@@ -118,20 +118,126 @@ def test_study_plan_generation_and_saving(client):
     assert dash_data["total_tasks"] == len(tasks)
     assert dash_data["exam_countdown_days"] is not None
 
-def test_conversational_assistant(client):
-    # Chat query for pending tasks
-    chat_res = client.post("/api/assistant/chat", json={"message": "Show me my pending tasks"})
-    assert chat_res.status_code == 200
-    data = chat_res.json()
-    assert "reply" in data
-    assert data["generation_mode"] in ["mock", "llm", "gemini", "openai"]
+def test_conversational_assistant(client, monkeypatch):
+    # Ensure tests run deterministically and fast without unnecessary external API calls (Rule 9)
+    async def mock_gemini(*args, **kwargs):
+        return None
+    monkeypatch.setattr("app.services.assistant_service._call_gemini_with_task_context", mock_gemini)
 
-    # Chat query for plan generation
+    today = date.today().strftime("%Y-%m-%d")
+    yesterday = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+    tomorrow = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    # Seed 3 distinct tasks:
+    # Task 1: Overdue, high priority, 90 mins (Hard subject)
+    client.post("/api/tasks", json={
+        "title": "OS Virtual Memory & Paging",
+        "subject": "Operating Systems",
+        "topic": "Virtual Memory",
+        "date": yesterday,
+        "duration": 90,
+        "priority": "high",
+        "is_completed": False
+    })
+    # Task 2: Today, medium priority, 30 mins (Easy subject)
+    client.post("/api/tasks", json={
+        "title": "DBMS Normalization Quick Review",
+        "subject": "Database Systems",
+        "topic": "Normalization",
+        "date": today,
+        "duration": 30,
+        "priority": "medium",
+        "is_completed": False
+    })
+    # Task 3: Tomorrow, low priority, 60 mins
+    client.post("/api/tasks", json={
+        "title": "Networks Subnetting Drills",
+        "subject": "Computer Networks",
+        "topic": "Subnetting",
+        "date": tomorrow,
+        "duration": 60,
+        "priority": "low",
+        "is_completed": False
+    })
+
+    # 1. "Show me my pending tasks"
+    res_pending = client.post("/api/assistant/chat", json={"message": "Show me my pending tasks"})
+    assert res_pending.status_code == 200
+    d_pending = res_pending.json()
+    assert d_pending["card_type"] == "task_list"
+    assert d_pending["card_data"]["total_count"] >= 3
+
+    # 2. "What should I study today?"
+    res_today = client.post("/api/assistant/chat", json={"message": "What should I study today?"})
+    assert res_today.status_code == 200
+    d_today = res_today.json()
+    assert d_today["card_type"] == "task_list"
+    assert any("DBMS Normalization" in t["title"] for t in d_today["card_data"]["tasks"])
+
+    # 3. "Which task should I prioritise?" (Recommends overdue high-priority task)
+    res_prio = client.post("/api/assistant/chat", json={"message": "Which task should I prioritise?"})
+    assert res_prio.status_code == 200
+    d_prio = res_prio.json()
+    assert d_prio["card_type"] == "recommendation"
+    assert "OS Virtual Memory" in d_prio["reply"] or "Operating Systems" in d_prio["card_data"]["items"][0]["subject"]
+
+    # 4. "Which is the easiest?" (Recommends the 30-min DBMS task)
+    res_easy = client.post("/api/assistant/chat", json={"message": "Which is the easiest?"})
+    assert res_easy.status_code == 200
+    d_easy = res_easy.json()
+    assert d_easy["card_type"] == "recommendation"
+    assert "DBMS Normalization" in d_easy["reply"] or "Database Systems" in d_easy["card_data"]["items"][0]["subject"]
+    # Verify that easiest and prioritise did NOT return the same response
+    assert d_prio["reply"] != d_easy["reply"]
+
+    # 5. "Why should I study this first?"
+    res_why = client.post("/api/assistant/chat", json={
+        "message": "Why should I study this first?",
+        "conversation_history": [
+            {"role": "user", "content": "Which task should I prioritise?"},
+            {"role": "assistant", "content": d_prio["reply"]}
+        ]
+    })
+    assert res_why.status_code == 200
+    d_why = res_why.json()
+    assert "first" in d_why["reply"].lower() or "priority" in d_why["reply"].lower() or "overdue" in d_why["reply"].lower()
+
+    # 6. "I have only 30 minutes. What should I study?"
+    res_30m = client.post("/api/assistant/chat", json={"message": "I have only 30 minutes. What should I study?"})
+    assert res_30m.status_code == 200
+    d_30m = res_30m.json()
+    assert "30" in d_30m["reply"]
+    assert "DBMS Normalization" in d_30m["reply"] or (d_30m["card_data"] and any(t.get("duration") <= 30 for t in d_30m["card_data"].get("tasks", [])))
+
+    # 7. "Create a 7-day DSA study plan"
     chat_plan = client.post("/api/assistant/chat", json={"message": "Create a 7-day DSA revision plan"})
     assert chat_plan.status_code == 200
     plan_data = chat_plan.json()
     assert plan_data["card_type"] == "plan_preview"
     assert "tasks" in plan_data["card_data"]
+
+def test_conversational_assistant_with_mocked_gemini(client, monkeypatch):
+    # Test that when live Gemini returns content, it is properly utilized and marked as gemini mode
+    today = date.today().strftime("%Y-%m-%d")
+    client.post("/api/tasks", json={
+        "title": "OS Process Scheduling",
+        "subject": "Operating Systems",
+        "topic": "Scheduling",
+        "date": today,
+        "duration": 45,
+        "priority": "high",
+        "is_completed": False
+    })
+
+    async def mock_gemini(*args, **kwargs):
+        return "Based on your real task schedule, you should focus on Operating Systems today!"
+    monkeypatch.setattr("app.services.assistant_service._call_gemini_with_task_context", mock_gemini)
+
+    res = client.post("/api/assistant/chat", json={"message": "What should I study today?"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "Based on your real task schedule" in data["reply"]
+    assert data["generation_mode"] == "gemini"
 
 def test_study_plan_ical_export(client):
     today = date.today()

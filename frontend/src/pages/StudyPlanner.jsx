@@ -88,9 +88,10 @@ export default function StudyPlanner({ onNavigate }) {
 
   const handleRemoveSubject = (id) => {
     if (subjects.length <= 1) {
-      alert("At least one subject is required for study planning.");
+      setFormError('At least one subject is required for study planning.');
       return;
     }
+    setFormError(null);
     setSubjects(subjects.filter((s) => s.id !== id));
   };
 
@@ -141,9 +142,10 @@ export default function StudyPlanner({ onNavigate }) {
   const togglePreferredDay = (day) => {
     if (preferredDays.includes(day)) {
       if (preferredDays.length <= 1) {
-        alert("Please select at least one study day per week.");
+        setFormError('Please select at least one study day per week.');
         return;
       }
+      setFormError(null);
       setPreferredDays(preferredDays.filter((d) => d !== day));
     } else {
       setPreferredDays([...preferredDays, day]);
@@ -257,7 +259,7 @@ export default function StudyPlanner({ onNavigate }) {
         onNavigate('tasks');
       }, 1200);
     } catch (err) {
-      alert(`Error saving study plan: ${err.message}`);
+      setFormError(`Error saving study plan: ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -437,8 +439,8 @@ export default function StudyPlanner({ onNavigate }) {
       
       {/* Page Header */}
       <div>
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold mb-2">
-          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 text-orange-700 text-xs font-semibold mb-2">
+          <Sparkles className="w-3.5 h-3.5 text-orange-500" />
           <span>Intelligent Scheduling Engine</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 font-heading">

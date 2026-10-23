@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from typing import List, Dict, Any, Optional
 import httpx
 
@@ -9,6 +9,29 @@ from app.config import settings
 from app.schemas.plan import PlanGenerateRequest, PlanGenerateResponse, PlannedTaskItem
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Runtime AI Verification & Mode Tracking
+# ---------------------------------------------------------------------------
+_live_generation_verified: bool = False
+_latest_generation_mode: Optional[str] = None  # "llm", "gemini", "openai", "deterministic_fallback", "mock"
+_latest_generation_timestamp: Optional[str] = None
+
+def get_ai_status() -> Dict[str, Any]:
+    """Returns runtime AI status distinguishing configuration from verified live generation."""
+    return {
+        "live_generation_verified": _live_generation_verified,
+        "latest_generation_mode": _latest_generation_mode,
+        "latest_generation_timestamp": _latest_generation_timestamp,
+    }
+
+def record_generation_result(mode: str) -> None:
+    """Records whether a generation succeeded via live LLM or fell back to deterministic mock."""
+    global _live_generation_verified, _latest_generation_mode, _latest_generation_timestamp
+    _latest_generation_mode = mode
+    _latest_generation_timestamp = datetime.now(timezone.utc).isoformat()
+    if mode in ("llm", "gemini", "openai"):
+        _live_generation_verified = True
 
 WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -198,22 +221,29 @@ async def generate_study_plan_service(req: PlanGenerateRequest) -> PlanGenerateR
     if settings.AI_PROVIDER == "gemini" and settings.GEMINI_API_KEY:
         logger.info(f"Initiating study plan generation with Gemini (model={settings.AI_MODEL_NAME})")
         try:
-            return await _generate_with_gemini(req)
+            res = await _generate_with_gemini(req)
+            record_generation_result("llm")
+            return res
         except Exception as e:
             fallback_msg = f"Gemini generation error ({type(e).__name__}). Operating in deterministic fallback mode."
             logger.warning(f"{fallback_msg} Details: {e}")
+            record_generation_result("deterministic_fallback")
             return generate_deterministic_plan(req, fallback_reason=fallback_msg)
     elif settings.AI_PROVIDER == "openai" and settings.OPENAI_API_KEY:
         logger.info("Initiating study plan generation with OpenAI")
         try:
-            return await _generate_with_openai(req)
+            res = await _generate_with_openai(req)
+            record_generation_result("llm")
+            return res
         except Exception as e:
             fallback_msg = f"OpenAI generation error ({type(e).__name__}). Operating in deterministic fallback mode."
             logger.warning(f"{fallback_msg} Details: {e}")
+            record_generation_result("deterministic_fallback")
             return generate_deterministic_plan(req, fallback_reason=fallback_msg)
 
     # Deterministic mock mode
     logger.info("Generating plan using deterministic mock engine (AI_PROVIDER=mock or API keys unset)")
+    record_generation_result("mock")
     return generate_deterministic_plan(req)
 
 async def _generate_with_gemini(req: PlanGenerateRequest) -> PlanGenerateResponse:

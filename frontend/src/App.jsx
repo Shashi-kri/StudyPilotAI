@@ -112,7 +112,7 @@ export default function App() {
       {/* Application Footer */}
       <footer className="mt-auto py-6 border-t border-slate-200/80 bg-white text-xs text-slate-500 text-center">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© 2026 StudyPilot AI — Amazon Developer Hackathon 2026 (Alexa+ Track MVP)</p>
+          <p>© 2026 StudyPilot AI — Amazon Developer Hackathon 2026</p>
           <div className="flex items-center gap-4">
             <button 
               onClick={() => handleNavigate('settings')} 
